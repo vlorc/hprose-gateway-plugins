@@ -3,9 +3,10 @@ package session
 import (
 	"context"
 	"errors"
-	"github.com/vlorc/hprose-gateway-core/types"
+	"github.com/vlorc/hprose-gateway-types"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -16,6 +17,7 @@ type sessionParam struct {
 	err     error
 	ignore  func(string) bool
 	id      string
+	level   int
 }
 
 func ignore(mode, match string) (result func(string) bool) {
@@ -44,12 +46,21 @@ func ignore(mode, match string) (result func(string) bool) {
 
 func (sessionParamFactory) Instance(ctx context.Context, param map[string]string) types.Plugin {
 	factory := ctx.Value("SessionFactory").(func(string) SessionFactory)
+	level, err := strconv.Atoi(param["level"])
+	if nil != err || level <= 0 {
+		level = 60000
+	}
 	return &sessionParam{
 		factory: factory(param["secret"]),
 		err:     errors.New(param["error"]),
 		ignore:  ignore(param["ignore.mode"], param["ignore.match"]),
 		id:      param["appid"],
+		level:   level,
 	}
+}
+
+func (s *sessionParam) Level() int {
+	return 65530
 }
 
 func (s *sessionParam) Close() error {
