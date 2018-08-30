@@ -2,15 +2,9 @@ package session
 
 import (
 	"context"
-	"errors"
 	"github.com/vlorc/hprose-gateway-types"
 	"reflect"
-	"regexp"
-	"strconv"
-	"strings"
 )
-
-type sessionParamFactory struct{}
 
 type sessionParam struct {
 	factory SessionFactory
@@ -18,45 +12,6 @@ type sessionParam struct {
 	ignore  func(string) bool
 	id      string
 	level   int
-}
-
-func ignore(mode, match string) (result func(string) bool) {
-	switch mode {
-	case "prefix":
-		result = func(s string) bool {
-			return strings.HasPrefix(s, match)
-		}
-	case "suffix":
-		result = func(s string) bool {
-			return strings.HasSuffix(s, match)
-		}
-	case "find":
-		result = func(s string) bool {
-			return strings.Index(s, match) >= 0
-		}
-	case "regexp":
-		result = regexp.MustCompile(match).MatchString
-	default:
-		result = func(string) bool {
-			return false
-		}
-	}
-	return
-}
-
-func (sessionParamFactory) Instance(ctx context.Context, param map[string]string) types.Plugin {
-	factory := ctx.Value("SessionFactory").(func(string) SessionFactory)
-	level, err := strconv.Atoi(param["level"])
-	if nil != err || level <= 0 {
-		level = 60000
-	}
-	return &sessionParam{
-		factory: factory(param["secret"]),
-		err:     errors.New(param["error"]),
-		ignore:  ignore(param["ignore.mode"], param["ignore.match"]),
-		id:      param["appid"],
-		level:   level,
-	}
 }
 
 func (s *sessionParam) Level() int {
